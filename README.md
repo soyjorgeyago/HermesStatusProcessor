@@ -1,2 +1,2 @@
-# HermesSimulatorPro_Standalone
-Standalone version of Hermes Simulator Pro that does not require an application server to be run.
+# HermesStatusProcessor
+Tool for processing Hermes Simulator Pro Standalone simulation status files.
