@@ -41,4 +41,18 @@ public class SimulatorStatusWrapper {
             return -1L;
         }
     }
+    
+    public long getHighestTimestamp() {
+        if (!simulatorStatusList.isEmpty()) {
+            long highestTimestamp = simulatorStatusList.get(0).getTimestamp();
+
+            for (SimulatorStatus ss : simulatorStatusList) {
+                highestTimestamp = (ss.getTimestamp() > highestTimestamp) ? ss.getTimestamp() : highestTimestamp;
+            }
+
+            return highestTimestamp;
+        } else {
+            return -1L;
+        }
+    }
 }
