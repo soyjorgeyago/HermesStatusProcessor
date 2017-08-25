@@ -69,31 +69,15 @@ public class Main {
                 }
 
                 simulatorStatusWrapper.getSimulatorStatusList().addAll(neededSimulatorStatus);
-//                Collections.sort(simulatorStatusWrapper.getSimulatorStatusList(), new Comparator<SimulatorStatus>() {
-//                    @Override
-//                    public int compare(SimulatorStatus o1, SimulatorStatus o2) {
-//                        return (int) (o1.getTimestamp() - (o2.getTimestamp()));
-//                    }
-//                });
-            }
 
-            CSVUtils.saveProcessedSimulatorStatusFiles(simulatorStatusWrapperList, "inserted");
-            for (SimulatorStatusWrapper simulatorStatusWrapper : simulatorStatusWrapperList) {
-                HashMap<String, SimulatorStatus> registered = new HashMap();
-                for (SimulatorStatus ss : simulatorStatusWrapper.getSimulatorStatusList()) {
-                    String key = ss.getPcKey() + ss.getSimulationSecond();
-                    SimulatorStatus rss = registered.get(key);
-                    if (rss != null) {
-                        if (ss.getGenerated() > rss.getGenerated()) {
-                            registered.put(key, ss);
-                        }
-                    } else {
-                        registered.put(key, ss);
-                    }
-                }
-                simulatorStatusWrapper.setSimulatorStatusList(new ArrayList(registered.values()));
+//                saveWithInserted(simulatorStatusWrapper);
+                saveClean(simulatorStatusWrapper, pcKeys);
+//                savePerPcKey(pcKeys, simulatorStatusWrapper);
+
+                int simulationSeconds = (int) (highestTimestamp - lowestTimestamp) / 1000;
+
+                saveAggregated(simulationSeconds, simulatorStatusWrapper);
             }
-            CSVUtils.saveProcessedSimulatorStatusFiles(simulatorStatusWrapperList, "clean");
         } else {
             LOG.log(Level.INFO, "main() - No simulator status files found.");
         }
@@ -109,4 +93,79 @@ public class Main {
         return pcKeys;
     }
 
+    private static void saveWithInserted(SimulatorStatusWrapper simulatorStatusWrapper) {
+        File insertedSimulatorStatusFile = new File("inserted_" + simulatorStatusWrapper.getFileName());
+        CSVUtils.saveProcessedSimulatorStatusFile(simulatorStatusWrapper.getSimulatorStatusList(), insertedSimulatorStatusFile);
+    }
+
+    private static void saveClean(SimulatorStatusWrapper simulatorStatusWrapper, Set<String> pcKeys) {
+        HashMap<String, SimulatorStatus> registered = new HashMap();
+
+        for (SimulatorStatus ss : simulatorStatusWrapper.getSimulatorStatusList()) {
+            String key = ss.getPcKey() + ss.getSimulationSecond();
+            SimulatorStatus rss = registered.get(key);
+            if (rss != null) {
+                if (ss.getGenerated() > rss.getGenerated()) {
+                    registered.put(key, ss);
+                }
+            } else {
+                registered.put(key, ss);
+            }
+        }
+
+        simulatorStatusWrapper.setSimulatorStatusList(new ArrayList(registered.values()));
+        File cleanSimulatorStatusFile = new File("clean_" + simulatorStatusWrapper.getFileName());
+        CSVUtils.saveProcessedSimulatorStatusFile(simulatorStatusWrapper.getSimulatorStatusList(), cleanSimulatorStatusFile);
+    }
+
+    private static void savePerPcKey(Set<String> pcKeys, SimulatorStatusWrapper simulatorStatusWrapper) {
+        for (String pcKey : pcKeys) {
+            List<SimulatorStatus> pcKeySimulatorStatus = new ArrayList<>();
+            for (SimulatorStatus ss : simulatorStatusWrapper.getSimulatorStatusList()) {
+                if (ss.getPcKey().equals(pcKey)) {
+                    pcKeySimulatorStatus.add(ss);
+                }
+            }
+
+            File cleanPcKeySimulatorStatusFile = new File(pcKey + "_" + simulatorStatusWrapper.getFileName());
+            CSVUtils.saveProcessedSimulatorStatusFile(pcKeySimulatorStatus, cleanPcKeySimulatorStatusFile);
+        }
+    }
+
+    private static void saveAggregated(int simulationSeconds, SimulatorStatusWrapper simulatorStatusWrapper) {
+
+        List<SimulatorStatus> ssl = new ArrayList();
+
+        for (int i = 0; i <= simulationSeconds; i++) {
+            SimulatorStatus aggregated = new SimulatorStatus();
+            aggregated.setTimestamp(0L);
+            int simulators = 0;
+
+            for (SimulatorStatus currentSimulatorStatus : simulatorStatusWrapper.getSimulatorStatusList()) {
+                if (currentSimulatorStatus.getSimulationSecond() == i) {
+                    aggregated.setGenerated(aggregated.getGenerated() + currentSimulatorStatus.getGenerated());
+                    aggregated.setSent(aggregated.getSent() + currentSimulatorStatus.getSent());
+                    aggregated.setOk(aggregated.getOk() + currentSimulatorStatus.getOk());
+                    aggregated.setNotOk(aggregated.getNotOk() + currentSimulatorStatus.getNotOk());
+                    aggregated.setErrors(aggregated.getErrors() + currentSimulatorStatus.getErrors());
+                    aggregated.setRecovered(aggregated.getRecovered() + currentSimulatorStatus.getRecovered());
+                    aggregated.setPending(aggregated.getPending() + currentSimulatorStatus.getPending());
+                    aggregated.setRunningThreads(aggregated.getRunningThreads() + currentSimulatorStatus.getRunningThreads());
+                    aggregated.setCurrentDriversDelay(aggregated.getCurrentDriversDelay() + currentSimulatorStatus.getCurrentDriversDelay());
+                    aggregated.setActiveDrivers(aggregated.getActiveDrivers() + currentSimulatorStatus.getActiveDrivers());
+                    aggregated.setPausedDrivers(aggregated.getPausedDrivers() + currentSimulatorStatus.getPausedDrivers());
+                    simulators++;
+                }
+            }
+            aggregated.setPcKey("Aggregated " + simulators);
+            aggregated.setSimulationSecond(i);
+            if (simulators > 0) {
+                aggregated.setCurrentDriversDelay(aggregated.getCurrentDriversDelay() / simulators);
+            }
+            ssl.add(aggregated);
+        }
+
+        File aggregatedSimulatorStatusFile = new File("aggregated_" + simulatorStatusWrapper.getFileName());
+        CSVUtils.saveProcessedSimulatorStatusFile(ssl, aggregatedSimulatorStatusFile);
+    }
 }

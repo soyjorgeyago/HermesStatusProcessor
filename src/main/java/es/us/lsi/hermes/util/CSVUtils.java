@@ -47,11 +47,8 @@ public class CSVUtils {
         }
     }
 
-    public static void saveProcessedSimulatorStatusFiles(List<SimulatorStatusWrapper> simulatorStatusWrapperList, String tag) {
-        for (SimulatorStatusWrapper simulatorStatusWrapper : simulatorStatusWrapperList) {
-            File newSimulatorStatusFile = new File(tag + "_" + simulatorStatusWrapper.getFileName());
-            exportToCSV(CsvPreference.EXCEL_NORTH_EUROPE_PREFERENCE, false, newSimulatorStatusFile, SimulatorStatus.HEADERS2, SimulatorStatus.FIELDS2, SimulatorStatus.CELL_PROCESSORS2, simulatorStatusWrapper.getSimulatorStatusList());
-        }
+    public static void saveProcessedSimulatorStatusFile(List<SimulatorStatus> simulatorStatusList, File newSimulatorStatusFile) {
+        exportToCSV(CsvPreference.EXCEL_NORTH_EUROPE_PREFERENCE, false, newSimulatorStatusFile, SimulatorStatus.HEADERS2, SimulatorStatus.FIELDS2, SimulatorStatus.CELL_PROCESSORS2, simulatorStatusList);
     }
 
     public static List<SimulatorStatusWrapper> loadSimulatorStatusFilesFromFolder(File folder, CsvPreference csvPreference) {
